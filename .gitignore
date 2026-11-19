@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+*.py[cod]
+*.sqlite3
+.env
+.local-admin.txt
+.DS_Store
+node_modules/
+project.private.config.json
+output/test-artifacts/
+
+backend/media/
+backend/staticfiles/

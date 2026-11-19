@@ -1,0 +1,20 @@
+<view class="menu-page">
+  <view wx:if="{{loading && !store}}" class="state"><view class="state-copy">正在打开今日菜单…</view></view>
+  <view wx:elif="{{error}}" class="state"><view class="state-title serif">菜单还在路上。</view><view class="state-copy">{{error}}</view><button class="secondary" bindtap="retry">重试</button></view>
+  <block wx:elif="{{store}}">
+    <view class="menu-header"><view class="store-name serif">{{store.name}}</view><view class="store-line"><text>{{store.is_open ? '营业中' : '暂未接单'}} · {{store.hours}}</text><text>自取 · 约 {{store.pickup_minutes}} 分钟</text></view></view>
+    <view class="search"><text>⌕</text><input placeholder="寻找你的那一杯" placeholder-class="search-placeholder" value="{{keyword}}" bindinput="search" confirm-type="search"/></view>
+    <view class="menu-layout">
+      <scroll-view scroll-y class="categories"><view role="button" class="category {{categoryId === 0 ? 'selected' : ''}}" data-id="0" data-name="人气推荐" bindtap="selectCategory">人气推荐</view><view role="button" wx:for="{{categories}}" wx:key="id" class="category {{categoryId === item.id ? 'selected' : ''}}" data-id="{{item.id}}" data-name="{{item.name}}" bindtap="selectCategory">{{item.name}}</view></scroll-view>
+      <scroll-view scroll-y class="products"><view class="menu-title serif">{{categoryName}}</view><view class="menu-sub">认真做好每一杯日常</view><view wx:for="{{visibleProducts}}" wx:key="id" class="product" data-id="{{item.id}}" bindtap="choose"><image class="product-photo" src="{{item.image}}" mode="aspectFill"/><view class="info"><view class="product-name">{{item.name}}</view><view class="product-en">{{item.english_name}}</view><view class="flavor">{{item.flavor}}</view><view class="product-bottom"><text class="price money">¥{{item.price}}</text><view class="plus" role="button" aria-label="选择商品">+</view></view></view></view><view wx:if="{{!visibleProducts.length}}" class="no-results">没有找到，换个关键词试试。</view><view class="list-end">— 每一杯，都认真 —</view></scroll-view>
+    </view>
+    <view class="bag-bar">
+      <view class="bag-summary" role="button" aria-label="查看购物袋" bindtap="showBag">
+        <view class="bag-icon">袋<text wx:if="{{count}}" class="count-badge">{{count}}</text></view>
+        <view class="bag-copy"><text class="bag-total money money-total">¥{{total}}</text><text class="bag-tip">到店自取</text></view>
+      </view>
+      <view class="bag-checkout" role="button" bindtap="{{count ? 'checkout' : 'showBag'}}">{{count ? '去下单' : '选一杯吧'}}<text>→</text></view>
+    </view>
+    <cart-panel visible="{{bagVisible}}" items="{{items}}" total="{{total}}" count="{{count}}" bind:close="closeBag" bind:change="changeBag" bind:checkout="checkout" bind:clear="clearBag"/>
+  </block>
+</view>

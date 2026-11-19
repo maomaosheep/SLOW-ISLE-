@@ -1,0 +1,13 @@
+{
+  "pages": ["pages/home/index", "pages/menu/index", "pages/orders/index", "pages/profile/index", "pages/detail/index", "pages/checkout/index", "pages/order-detail/index"],
+  "window": {"navigationBarTitleText": "SLOW ISLE · 慢屿", "navigationBarBackgroundColor": "#f8f5ef", "navigationBarTextStyle": "black", "backgroundColor": "#f8f5ef", "backgroundTextStyle": "dark"},
+  "tabBar": {"color": "#82776c", "selectedColor": "#302720", "backgroundColor": "#f8f5ef", "borderStyle": "white", "list": [
+    {"pagePath": "pages/home/index", "text": "首页", "iconPath": "assets/home.png", "selectedIconPath": "assets/home-active.png"},
+    {"pagePath": "pages/menu/index", "text": "点单", "iconPath": "assets/cup.png", "selectedIconPath": "assets/cup-active.png"},
+    {"pagePath": "pages/orders/index", "text": "订单", "iconPath": "assets/order.png", "selectedIconPath": "assets/order-active.png"},
+    {"pagePath": "pages/profile/index", "text": "我的", "iconPath": "assets/user.png", "selectedIconPath": "assets/user-active.png"}
+  ]},
+  "style": "v2",
+  "sitemapLocation": "sitemap.json",
+  "lazyCodeLoading": "requiredComponents"
+}

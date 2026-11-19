@@ -1,0 +1,26 @@
+{% load static %}
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{% block title %}慢屿咖啡 · 门店工作台{% endblock %}</title><link rel="icon" href="{% static 'coffee/favicon.svg' %}" type="image/svg+xml"><link rel="stylesheet" href="{% static 'coffee/workbench.css' %}"><script defer src="{% static 'coffee/workbench.js' %}"></script>{% block head %}{% endblock %}</head>
+<body>
+<svg class="svg-defs" aria-hidden="true"><defs>
+<symbol id="cup" viewBox="0 0 24 24"><path d="M4 8h13v8a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5Z M17 9h2a3 3 0 0 1 0 6h-2 M8 2v3 M13 2v3"/></symbol>
+<symbol id="menu" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></symbol>
+<symbol id="receipt" viewBox="0 0 24 24"><path d="M5 3h14v18l-3-2-4 2-4-2-3 2Z M8 8h8 M8 12h8 M8 16h4"/></symbol>
+<symbol id="category" viewBox="0 0 24 24"><path d="M3 7h7l2-3h9v16H3Z M3 11h18"/></symbol>
+<symbol id="store" viewBox="0 0 24 24"><path d="M3 9l2-6h14l2 6v3a3 3 0 0 1-5 2 3 3 0 0 1-4 0 3 3 0 0 1-4 0 3 3 0 0 1-5-2Z M4 14v7h16v-7 M9 21v-6h6v6 M3 9h18"/></symbol>
+<symbol id="search" viewBox="0 0 24 24"><circle cx="10" cy="10" r="7"/><path d="m15 15 6 6"/></symbol>
+<symbol id="edit" viewBox="0 0 24 24"><path d="m4 16 12-12 4 4L8 20H4Z M14 6l4 4"/></symbol>
+<symbol id="trash" viewBox="0 0 24 24"><path d="M3 6h18 M8 6V3h8v3 M5 6l1 15h12l1-15 M10 10v7 M14 10v7"/></symbol>
+</defs></svg>
+<aside class="sidebar"><a href="{% url 'workbench-home' %}" class="brand"><span class="brand-icon"><svg><use href="#cup"/></svg></span><span>SLOW ISLE<small>慢屿咖啡 · 门店工作台</small></span></a><div class="nav-caption">日常经营</div><nav>
+{% if perms.coffee.view_product %}<a href="{% url 'workbench-products' %}" class="nav-item {% if section == 'products' %}active{% endif %}"><svg><use href="#menu"/></svg>商品管理</a>{% endif %}
+{% if perms.coffee.view_order %}<a href="{% url 'workbench-orders' %}" class="nav-item {% if section == 'orders' %}active{% endif %}"><svg><use href="#receipt"/></svg>订单管理{% if pending_count %}<span class="nav-count">{{ pending_count }}</span>{% endif %}</a>{% endif %}
+{% if perms.coffee.view_category %}<a href="{% url 'workbench-categories' %}" class="nav-item {% if section == 'categories' %}active{% endif %}"><svg><use href="#category"/></svg>分类管理</a>{% endif %}
+{% if perms.coffee.view_store %}<a href="{% url 'workbench-store' %}" class="nav-item {% if section == 'store' %}active{% endif %}"><svg><use href="#store"/></svg>门店设置</a>{% endif %}
+</nav><div class="sidebar-bottom"><div class="sidebar-store"><span class="status-dot {% if not store.is_open %}off{% endif %}"></span>{{ store.name|default:'慢屿咖啡' }}<small>{{ store.is_open|yesno:'正在接单,暂停接单' }}</small></div><form method="post" action="{% url 'admin:logout' %}">{% csrf_token %}<button class="logout" type="submit">退出登录 ↗</button></form></div></aside>
+<main class="main"><header class="topbar"><div class="topbar-note">认真做好每一杯日常。<span>GOOD COFFEE, GOOD DAY.</span></div><div class="account"><span class="avatar">{{ request.user.username|first|upper }}</span><span>{{ request.user.get_short_name|default:request.user.username }}<small>门店工作台</small></span></div></header><div class="workspace">
+{% for message in messages %}<div class="flash {{ message.tags }}" role="status">{{ message }}<button type="button" data-dismiss aria-label="关闭提示">×</button></div>{% endfor %}
+{% block content %}{% endblock %}
+</div></main>
+<dialog id="confirm-dialog"><form method="dialog"><div class="dialog-icon"><svg><use href="#trash"/></svg></div><h2>确认操作？</h2><p id="confirm-copy"></p><div class="dialog-actions"><button class="button" value="cancel">返回</button><button class="button danger" value="confirm">确认</button></div></form></dialog>
+{% block overlay %}{% endblock %}
+</body></html>

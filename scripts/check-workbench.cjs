@@ -1,0 +1,55 @@
+const assert = require('node:assert/strict');
+const fs = require('node:fs/promises');
+const { chromium } = require('C:/Users/Administrator/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
+const base = process.env.COFFEE_URL || 'http://127.0.0.1:8000';
+(async () => {
+  const browser = await chromium.launch({ executablePath: 'C:/Program Files/Google/Chrome/Application/chrome.exe', headless: true });
+  try {
+    const page = await browser.newPage({ viewport: { width: 1480, height: 1000 }, deviceScaleFactor: 1.5 });
+    const errors = []; page.on('pageerror', error => errors.push(error.message));
+    const credential = await fs.readFile('backend/.local-admin.txt', 'utf8');
+    await page.goto(base + '/admin/');
+    await page.locator('#id_username').fill(credential.match(/账号：([^\r\n]+)/)[1]);
+    await page.locator('#id_password').fill(credential.match(/密码：([^\r\n]+)/)[1]);
+    await Promise.all([page.waitForURL('**/admin/'), page.locator('input[type="submit"]').click()]);
+    await page.locator('.product-card').first().waitFor();
+    await page.evaluate(async () => { await document.fonts.ready; await Promise.all([...document.images].map(image => image.decode())); });
+    assert.equal(await page.locator('.product-card img').evaluateAll(images => images.filter(image => !image.naturalWidth).length), 0);
+    await page.screenshot({ path: 'prototype/backend-live.png', fullPage: true });
+    await page.locator('[data-view="list"]').click();
+    assert.ok(await page.locator('.list-view').isVisible());
+    await page.locator('[data-view="grid"]').click();
+    await page.locator('.edit-link').first().click();
+    await page.locator('[data-spec-editor]').waitFor();
+    assert.equal(await page.locator('textarea[name="options"]').count(), 0);
+    const group = page.locator('.spec-group').nth(1);
+    const originalCount = await group.locator('.spec-row').count();
+    await group.locator('[data-add]').click();
+    assert.equal(await group.locator('.spec-row').count(), originalCount + 1);
+    await group.locator('.spec-row').last().locator('[data-remove]').click();
+    assert.equal(await group.locator('.spec-row').count(), originalCount);
+    await group.locator('[data-enable]').uncheck();
+    assert.equal(await group.locator('.spec-content').isVisible(), false);
+    await group.locator('[data-enable]').check();
+    assert.equal(await group.locator('.spec-content').isVisible(), true);
+    await page.locator('[data-spec-editor]').scrollIntoViewIfNeeded();
+    await page.screenshot({ path: 'prototype/specifications.png', fullPage: true });
+    await page.keyboard.press('Escape');
+    await page.waitForURL('**/admin/products/');
+    // Verify the confirmation dialog opens, and dismiss it without mutating data.
+    await page.locator('.delete-icon').first().click();
+    await page.locator('dialog[open]').waitFor();
+    await page.locator('dialog button[value="cancel"]').click();
+    await page.goto(base + '/admin/categories/');
+    assert.ok(await page.locator('tbody tr').count() > 0);
+    await page.goto(base + '/admin/orders/?status=all');
+    await page.screenshot({ path: 'prototype/orders-workbench.png', fullPage: true });
+    await page.goto(base + '/admin/store/');
+    assert.ok(await page.locator('input[name="opening_time"]').isVisible());
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(base + '/admin/products/');
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+    assert.deepEqual(errors, []);
+    console.log('Passed workbench: login, product images, card/list switch, visual option add/remove/toggle, delete confirmation, categories/orders/store, mobile overflow, browser errors.');
+  } finally { await browser.close(); }
+})().catch(error => { console.error(error); process.exitCode = 1; });

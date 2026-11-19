@@ -1,0 +1,17 @@
+<div class="spec-editor" data-spec-editor>
+  {% for group in groups %}
+  <section class="spec-group">
+    <label class="spec-toggle"><input type="checkbox" name="{{ widget.name }}_{{ group.key }}_enabled" {% if group.enabled %}checked{% endif %} data-enable><span>{{ group.title }}</span><small>启用后顾客下单时可选择</small></label>
+    <div class="spec-content" {% if not group.enabled %}hidden{% endif %}>
+      <div class="spec-columns"><span>选项名称</span><span>加价（元）</span><span></span></div>
+      <div data-rows>
+      {% for row in group.rows %}
+        <div class="spec-row"><input name="{{ widget.name }}_{{ group.key }}_label" value="{{ row.label }}" placeholder="例如：大杯" maxlength="20" aria-label="{{ group.title }}选项名称" {% if not group.enabled %}disabled{% endif %}><input type="number" name="{{ widget.name }}_{{ group.key }}_extra" value="{{ row.extra }}" min="0" max="999" step="0.01" aria-label="{{ group.title }}加价金额" {% if not group.enabled %}disabled{% endif %}><button type="button" class="spec-remove" data-remove aria-label="删除选项">×</button></div>
+      {% endfor %}
+      </div>
+      <button type="button" class="spec-add" data-add>＋ 添加{{ group.title }}选项</button>
+    </div>
+  </section>
+  {% endfor %}
+  <p class="spec-note">未启用的规格不会显示。第一个选项为顾客默认选项，最多 10 个选项。</p>
+</div>

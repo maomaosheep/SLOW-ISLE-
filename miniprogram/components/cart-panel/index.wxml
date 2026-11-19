@@ -1,0 +1,32 @@
+<view wx:if="{{visible}}" class="shade">
+  <view class="backdrop" bindtap="close" catchtouchmove="noop"></view>
+  <view class="panel" catchtap="noop">
+    <view class="heading">
+      <view class="heading-copy"><text class="heading-title">你的购物袋</text><text class="heading-note">现磨现做，等你来取</text></view>
+      <view wx:if="{{count}}" class="heading-clear" role="button" bindtap="clear" aria-label="清空购物袋">清空</view>
+      <view class="close" role="button" bindtap="close" aria-label="关闭购物袋">×</view>
+    </view>
+    <scroll-view scroll-y class="cart-list" style="height: {{items.length ? items.length * 240 : 320}}rpx">
+      <view wx:for="{{items}}" wx:key="key" class="cart-item">
+        <image class="item-image" src="{{item.image}}" mode="aspectFill" />
+        <view class="item-body">
+          <view class="item-name">{{item.name}}</view>
+          <view class="item-spec">{{item.specification || '每日现做'}}</view>
+          <view class="item-bottom">
+            <text class="item-price money">¥{{item.unit_price}}</text>
+            <view class="quantity-control">
+              <view class="quantity-action" role="button" data-key="{{item.key}}" data-delta="-1" bindtap="change" aria-label="减少数量">−</view>
+              <text class="quantity-value quantity-number">{{item.quantity}}</text>
+              <view class="quantity-action quantity-add" role="button" data-key="{{item.key}}" data-delta="1" bindtap="change" aria-label="增加数量">+</view>
+            </view>
+          </view>
+        </view>
+      </view>
+      <view wx:if="{{!items.length}}" class="empty"><image src="/assets/cup-active.png"/><text>购物袋还是空的</text><text class="empty-note">先选一杯喜欢的咖啡吧。</text></view>
+    </scroll-view>
+    <view class="bottom">
+      <view class="summary"><text class="summary-count">共 {{count}} 件</text><text class="summary-total money money-total">¥{{total}}</text></view>
+      <view class="checkout-action {{!count ? 'is-disabled' : ''}}" role="button" aria-disabled="{{!count}}" bindtap="checkout">确认订单 <text>→</text></view>
+    </view>
+  </view>
+</view>

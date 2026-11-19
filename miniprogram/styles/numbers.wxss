@@ -1,0 +1,7 @@
+/* Shared by pages and isolated components: lining, tabular numerals. */
+.numeric,.money,.quantity-number,.count-badge,.pickup-number{font-family:Arial,"Helvetica Neue",sans-serif;font-style:normal;font-variant-numeric:lining-nums tabular-nums;font-feature-settings:"lnum" 1,"tnum" 1;letter-spacing:0}
+.money{font-size:32rpx;font-weight:500;line-height:1.35;white-space:nowrap}
+.money-total{font-weight:600}
+.quantity-number{font-size:28rpx;line-height:1.4}
+.count-badge{font-size:20rpx;line-height:1}
+.pickup-number{font-size:64rpx;font-weight:600;line-height:1.3}

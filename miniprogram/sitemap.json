@@ -1,0 +1,1 @@
+{"desc":"订单等页面不参与微信搜索索引","rules":[{"action":"disallow","page":"*"}]}

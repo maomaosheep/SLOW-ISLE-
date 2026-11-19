@@ -1,0 +1,6 @@
+{% extends "admin/base.html" %}
+{% load static %}
+{% block title %}{{ title }} · 慢屿咖啡{% endblock %}
+{% block branding %}<div id="site-name"><a href="{% url 'admin:index' %}">SLOW ISLE <span style="font-size:15px;margin-left:18px;font-family:serif">慢屿咖啡 · 商家工作台</span></a></div>{% endblock %}
+{% block extrastyle %}{{ block.super }}<link rel="stylesheet" href="{% static 'coffee/admin.css' %}">{% endblock %}
+{% block nav-global %}<a class="prototype-link" href="/admin/">返回门店工作台 ↗</a>{% endblock %}

@@ -1,0 +1,9 @@
+<view class="profile-page">
+  <view class="profile-cover"><image class="cover-image" src="/assets/hero.jpg" mode="aspectFill"/><view class="cover-shade"></view><view class="cover-copy"><view class="eyebrow">YOUR LITTLE COFFEE CORNER</view><view class="serif">我的慢屿</view><text>给日常，一点香气。</text></view><view class="brand-seal"><image src="/assets/cup-active.png"/><text>SLOW ISLE</text></view></view>
+  <view class="profile-content">
+    <view class="order-entry" role="button" bindtap="orders"><view class="icon-tile"><image src="/assets/order-active.png"/></view><view class="entry-copy"><view>我的订单</view><text>查看制作进度与取餐码</text></view><text class="entry-arrow">↗</text></view>
+    <view wx:if="{{error}}" class="note-box">{{error}}<button class="text-button" bindtap="retry">重新连接</button></view>
+    <view wx:if="{{store}}" class="store-card"><view class="store-top"><image src="/assets/store.png"/><view><view class="store-name">{{store.name}}</view><view class="store-hours"><text class="store-dot {{store.is_open ? '' : 'closed'}}">●</text> {{store.is_open ? '营业中' : '暂未接单'}} · {{store.hours}}</view></view></view><view class="store-actions"><view class="store-action" role="button" bindtap="copyAddress"><image src="/assets/pin.png"/><text>门店地址</text><text class="small-arrow">↗</text></view><view wx:if="{{store.phone}}" class="store-action" role="button" bindtap="contact"><image src="/assets/phone.png"/><text>联系门店</text><text class="small-arrow">↗</text></view><view wx:else class="store-action" role="button" bindtap="about"><image src="/assets/cup-active.png"/><text>关于慢屿</text><text class="small-arrow">↗</text></view></view></view>
+    <view class="profile-bottom"><text class="serif">一杯咖啡，片刻留白。</text><view class="eyebrow">SLOW ISLE COFFEE</view></view>
+  </view>
+</view>
