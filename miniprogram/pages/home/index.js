@@ -1,4 +1,5 @@
 const { chooseCoffee } = require('../../utils/recommendations')
+const { canOrder } = require('../../utils/cart')
 Page({
   data: { loading: true, error: '', store: null, featured: null, recommendations: [] },
   onLoad() { this.load() },
@@ -8,7 +9,7 @@ Page({
     this.setData({ loading: true, error: '' })
     try {
       const catalog = await getApp().getCatalog(refresh)
-      this.setData({ store: catalog.store, featured: catalog.products.find(item => item.is_featured) || catalog.products[0] || null })
+      this.setData({ store: catalog.store, featured: catalog.products.find(item => item.is_featured && canOrder(item)) || catalog.products.find(canOrder) || null })
       this.catalog = catalog
       this.shuffleRecommendations()
     } catch (error) { this.setData({ error: error.message }) }

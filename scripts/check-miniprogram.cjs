@@ -12,7 +12,7 @@ for(const file of files){
 const app=JSON.parse(fs.readFileSync(path.join(root,'app.json'),'utf8'));
 for(const page of app.pages)for(const extension of ['js','json','wxml','wxss'])assert.ok(fs.existsSync(path.join(root,page+'.'+extension)),page+'.'+extension);
 for(const tab of app.tabBar.list)for(const property of ['iconPath','selectedIconPath'])assert.ok(fs.existsSync(path.join(root,tab[property])));
-const native=new Set(['view','text','image','button','input','scroll-view','block','cart-panel']);
+const native=new Set(['view','text','image','button','input','scroll-view','block','cart-panel','picker']);
 for(const file of files.filter(file=>file.endsWith('.wxml'))){
   const source=fs.readFileSync(file,'utf8');
   for(const match of source.matchAll(/<([a-z][\w-]*)\b/g))assert.ok(native.has(match[1]),`Non-native WXML tag ${match[1]} in ${file}`);
@@ -62,3 +62,18 @@ component.methods.change.call(instance,{currentTarget:{dataset:{key:standard.key
 component.methods.change.call(instance,{currentTarget:{dataset:{key:standard.key,delta:'1'}}});
 assert.deepEqual(events,[['checkout'],['change',{key:standard.key,delta:-1}],['change',{key:standard.key,delta:1}]]);
 console.log('Passed cart component: checkout guard and both quantity controls preserve item key and numeric delta.');
+
+const {imageSource,withImages}=require('../miniprogram/utils/images');
+const origin=require('../miniprogram/config').API_BASE_URL.replace(/\/api\/?$/,'');
+for(const name of ['latte.jpg','americano.jpg','croissant.jpg']){
+  for(const base of ['', 'http://127.0.0.1:8000', 'http://192.168.0.15:8000', 'https://coffee.example'])assert.equal(imageSource(base+'/static/coffee/products/'+name),'/assets/'+name);
+  assert.ok(fs.existsSync(path.join(root,'assets',name)));
+}
+assert.equal(imageSource('/media/products/upload.jpg'),origin+'/media/products/upload.jpg');
+assert.equal(imageSource('http://127.0.0.1:8000/media/products/upload.jpg'),origin+'/media/products/upload.jpg');
+assert.equal(imageSource('https://cdn.example/products/custom.jpg','latte.jpg'),'https://cdn.example/products/custom.jpg');
+assert.equal(imageSource('/media/products/custom.jpg','latte.jpg'),origin+'/media/products/custom.jpg');
+const imagePayload={results:[{items:[{image:'http://127.0.0.1:8000/static/coffee/products/latte.jpg'}]}]};
+assert.equal(withImages(imagePayload).results[0].items[0].image,'/assets/latte.jpg');
+assert.equal(imagePayload.results[0].items[0].image,'http://127.0.0.1:8000/static/coffee/products/latte.jpg');
+console.log('Passed phone images: bundled photos, relative uploads, old loopback snapshots, custom image preservation and non-mutating normalization.');

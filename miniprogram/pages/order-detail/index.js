@@ -15,7 +15,9 @@ Page({
     this.fetching = true
     try {
       const order = present(await api.order(this.orderId))
-      this.setData({ order, loading: false, error: '', statusText: messages[order.status], step: progress[order.status] })
+      const statusText = order.scheduled_for && ['pending', 'preparing'].includes(order.status)
+        ? '预约 ' + order.pickup_label + ' 取餐，门店将按约定时间备货。' : messages[order.status]
+      this.setData({ order, loading: false, error: '', statusText, step: progress[order.status] })
     } catch (error) { this.setData({ loading: false, error: error.message }) }
     finally {
       this.fetching = false

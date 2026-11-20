@@ -11,13 +11,13 @@
         <image class="item-image" src="{{item.image}}" mode="aspectFill" />
         <view class="item-body">
           <view class="item-name">{{item.name}}</view>
-          <view class="item-spec">{{item.specification || '每日现做'}}</view>
+          <text wx:if="{{item.is_out_of_stock}}" class="stock-tag">{{item.reservation_only ? '缺货 · 可预约' : '暂时缺货'}}</text><view class="item-spec">{{item.specification || '每日现做'}}</view>
           <view class="item-bottom">
             <text class="item-price money">¥{{item.unit_price}}</text>
             <view class="quantity-control">
-              <view class="quantity-action" role="button" data-key="{{item.key}}" data-delta="-1" bindtap="change" aria-label="减少数量">−</view>
+              <view class="quantity-action quantity-symbol quantity-minus" role="button" data-key="{{item.key}}" data-delta="-1" bindtap="change" aria-label="减少数量"></view>
               <text class="quantity-value quantity-number">{{item.quantity}}</text>
-              <view class="quantity-action quantity-add" role="button" data-key="{{item.key}}" data-delta="1" bindtap="change" aria-label="增加数量">+</view>
+              <view class="quantity-action quantity-add quantity-symbol {{item.is_out_of_stock && !item.reservation_only ? 'is-disabled' : ''}}" role="button" aria-disabled="{{item.is_out_of_stock && !item.reservation_only}}" data-key="{{item.key}}" data-delta="1" bindtap="change" aria-label="增加数量"></view>
             </view>
           </view>
         </view>
@@ -26,7 +26,7 @@
     </scroll-view>
     <view class="bottom">
       <view class="summary"><text class="summary-count">共 {{count}} 件</text><text class="summary-total money money-total">¥{{total}}</text></view>
-      <view class="checkout-action {{!count ? 'is-disabled' : ''}}" role="button" aria-disabled="{{!count}}" bindtap="checkout">确认订单 <text>→</text></view>
+      <view class="checkout-action {{!count || stockBlocked ? 'is-disabled' : ''}}" role="button" aria-disabled="{{!count || stockBlocked}}" bindtap="checkout">{{stockBlocked ? '请移除缺货商品' : '确认订单'}} <text>→</text></view>
     </view>
   </view>
 </view>

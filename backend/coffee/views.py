@@ -12,6 +12,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_GET, require_POST
 
 from .models import Category, CustomerSession, Order, OrderItem, Product, Store, TicketCounter, validate_options
+from .scheduling import pickup_choices, validate_pickup
 
 
 def error(message, status=400):
@@ -52,6 +53,8 @@ def product_json(request, product):
         'english_name': product.english_name, 'description': product.description,
         'flavor': product.flavor, 'price': str(product.price), 'image': image_url(request, product),
         'fallback_image': product.fallback_image, 'options': product.options, 'is_featured': product.is_featured,
+        'reservation_only': product.reservation_only, 'reservation_lead_minutes': product.reservation_lead_minutes,
+        'is_out_of_stock': product.is_out_of_stock,
     }
 
 
@@ -63,6 +66,8 @@ def order_json(order):
         'total': str(order.total), 'store_name': order.store_name,
         'store_address': order.store_address, 'pickup_minutes': order.pickup_minutes,
         'created_at': order.created_at.isoformat(),
+        'scheduled_for': timezone.localtime(order.scheduled_for).isoformat() if order.scheduled_for else None,
+        'pickup_label': timezone.localtime(order.scheduled_for).strftime('%m月%d日 %H:%M') if order.scheduled_for else '尽快制作',
         'items': [
             {'id': item.pk, 'product_name': item.product_name, 'specification': item.specification,
              'unit_price': str(item.unit_price), 'quantity': item.quantity, 'image': item.image,
@@ -102,6 +107,28 @@ def catalog(request):
     })
 
 
+@require_GET
+def pickup_slots(request):
+    store = Store.objects.first()
+    if not store:
+        return error('门店尚未配置。', 503)
+    try:
+        raw = request.GET.get('product_ids', '')
+        if len(raw) > 400:
+            raise ValueError
+        ids = {int(value) for value in raw.split(',')}
+        if not 1 <= len(ids) <= 30 or any(value <= 0 for value in ids):
+            raise ValueError
+    except (ValueError, TypeError):
+        return error('请选择有效的商品后查看预约时段。')
+    products = list(Product.objects.filter(pk__in=ids, is_available=True, category__is_active=True))
+    if len(products) != len(ids):
+        return error('部分商品已下架，请刷新购物袋。')
+    if any(not product.can_order for product in products):
+        return error('购物袋有缺货商品，暂不接受下单或预约，请先移除。')
+    return JsonResponse(pickup_choices(store, products))
+
+
 def validate_items(request, raw_items):
     if not isinstance(raw_items, list) or not 1 <= len(raw_items) <= 30:
         raise ValueError('请选择 1 至 30 项商品。')
@@ -118,6 +145,8 @@ def validate_items(request, raw_items):
         product = Product.objects.select_for_update().filter(pk=product_id, is_available=True, category__is_active=True).first()
         if not product:
             raise ValueError('部分商品已下架，请刷新菜单后重试。')
+        if not product.can_order:
+            raise ValueError(f'「{product.name}」暂时缺货，不接受下单或预约。')
         try:
             validate_options(product.options)
         except ValidationError:
@@ -163,10 +192,11 @@ def create_order(request):
             if not store or not store.is_open:
                 return error('门店暂未接受点单，晚点再来吧。', 409)
             items, total = validate_items(request, data.get('items'))
+            scheduled_for = validate_pickup(store, [item['product'] for item in items], data.get('scheduled_for'))
             # Compare the current server quote to the amount the customer reviewed.
             if str(total) != str(data.get('expected_total')):
                 return error('商品价格已更新，请刷新菜单并重新确认。', 409)
-            today = timezone.localdate()
+            today = timezone.localdate(scheduled_for) if scheduled_for else timezone.localdate()
             counter, _ = TicketCounter.objects.select_for_update().get_or_create(date=today)
             TicketCounter.objects.filter(pk=counter.pk).update(counter=F('counter') + 1)
             counter.refresh_from_db()
@@ -174,7 +204,7 @@ def create_order(request):
             order = Order.objects.create(customer=request.customer, request_id=request_id,
                 customer_name=name.strip(), note=note.strip(), total=total,
                 store_name=store.name, store_address=store.address, pickup_minutes=store.pickup_minutes,
-                pickup_code=pickup_code)
+                pickup_code=pickup_code, scheduled_for=scheduled_for)
             OrderItem.objects.bulk_create([OrderItem(order=order, **item) for item in items])
         return JsonResponse(order_json(order), status=201)
     except ValueError as exc:
@@ -194,6 +224,11 @@ def orders(request):
     except (ValueError, TypeError):
         return error('页码无效。')
     queryset = Order.objects.filter(customer=request.customer).prefetch_related('items')
+    kind = request.GET.get('kind', 'all')
+    if kind == 'reserved':
+        queryset = queryset.filter(scheduled_for__isnull=False)
+    elif kind == 'ongoing':
+        queryset = queryset.filter(status__in=['pending', 'preparing', 'ready'])
     start = (page - 1) * 20
     entries = list(queryset[start:start + 21])
     return JsonResponse({'results': [order_json(o) for o in entries[:20]], 'has_more': len(entries) > 20, 'page': page})

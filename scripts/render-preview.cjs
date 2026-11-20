@@ -16,25 +16,40 @@ async function readStyles(file){
 }
 (async()=>{
   const catalog = await fetch(base+'/api/catalog/').then(response=>response.json());
+  const pickupOptions = await fetch(base+'/api/pickup-slots/?product_ids='+catalog.products.map(product=>product.id).join(',')).then(response=>response.json());
   const browser=await chromium.launch({executablePath:'C:/Program Files/Google/Chrome/Application/chrome.exe',headless:true});
   const previews=[];
   try{
     const cartSource=await fs.readFile(path.join(root,'miniprogram/components/cart-panel/index.wxml'),'utf8');
     const cartCss=browserCss(await readStyles(path.join(root,'miniprogram/components/cart-panel/index.wxss')));
     const bagItems=catalog.products.slice(0,2).map((product,index)=>cart.lineFor(product,Object.fromEntries(Object.entries(product.options).map(([key,values])=>[key,values[0].label])),index ? 3 : 1));
-    for(const variant of ['home','menu','profile','menu-filled','cart','cart-empty','cart-stress','detail','checkout','orders','order-detail']){
-      const name=variant.startsWith('cart')||variant==='menu-filled' ? 'menu' : variant;
+    for(const variant of ['home','menu','profile','menu-filled','cart','cart-empty','cart-stress','detail','checkout','orders','order-detail','checkout-reservation','checkout-no-slots','detail-reservation','orders-reservation','order-detail-reservation','menu-stock','detail-stock','detail-stock-reservation','checkout-stock','cart-stock']){
+      const name=variant.startsWith('cart')||variant.startsWith('menu-') ? 'menu' : variant.replace(/-(stock(?:-reservation)?|reservation|no-slots)$/,'');
       const source=await fs.readFile(path.join(root,'miniprogram/pages',name,'index.wxml'),'utf8');
       const styles=(await readStyles(path.join(root,'miniprogram/app.wxss')))+'\n'+(await readStyles(path.join(root,'miniprogram/pages',name,'index.wxss')));
       const data={loading:false,error:'',store:catalog.store,featured:catalog.products.find(p=>p.is_featured)||catalog.products[0],recommendations:chooseCoffee(catalog.products,catalog.categories),categories:catalog.categories,categoryId:0,categoryName:'人气推荐',keyword:'',visibleProducts:catalog.products,items:[],count:0,total:'0.00',bagVisible:false};
       const sampleOrder={id:1,status:'pending',status_label:'待接单',store_name:catalog.store.name,store_address:catalog.store.address,pickup_code:'A028',pickup_minutes:10,date_label:'2026.11.19 12:53',total:cart.totals(bagItems).total,items:bagItems.map((item,index)=>({...item,id:index+1,product_name:item.name}))};
-      Object.assign(data,{product:catalog.products[0],price:catalog.products[0].price,groups:[],quantity:1,isOpen:true,pending:false,customerName:'',note:'',submitting:false,visible:[sampleOrder],orders:[sampleOrder],activeTab:'all',hasMore:false,order:sampleOrder,step:0,created:true,statusText:'咖啡师即将接单。',cancelling:false});
+      Object.assign(data,{product:catalog.products[0],price:catalog.products[0].price,groups:[],quantity:1,isOpen:true,orderable:true,stockBlocked:false,pending:false,customerName:'',note:'',submitting:false,visible:[sampleOrder],orders:[sampleOrder],activeTab:'all',hasMore:false,order:sampleOrder,step:0,created:true,statusText:'咖啡师即将接单。',cancelling:false,pickupMode:'asap',pickupRequired:false,pickupSlots:pickupOptions.slots,pickupIndex:0,pickupLabel:pickupOptions.slots[0]?.label||'',leadMinutes:pickupOptions.lead_minutes});
+      if(variant.endsWith('-reservation')||variant==='checkout-no-slots'){
+        Object.assign(data,{pickupMode:'scheduled',pickupRequired:true,leadMinutes:120,product:{...catalog.products[0],reservation_only:true,reservation_lead_minutes:120}});
+        data.pickupSlots=pickupOptions.slots.filter(slot=>new Date(slot.value).getTime()>=new Date(pickupOptions.server_now).getTime()+120*60*1000);
+        data.pickupLabel=data.pickupSlots[0]?.label||'';
+        sampleOrder.scheduled_for=data.pickupSlots[0]?.value;
+        sampleOrder.pickup_label=data.pickupLabel;
+        if(variant==='checkout-no-slots')data.pickupSlots=[];
+      }
       if(name==='checkout')Object.assign(data,{items:bagItems,...cart.totals(bagItems)});
       if(['menu-filled','cart','cart-stress'].includes(variant)){
         data.items=variant==='cart-stress' ? Array.from({length:8},(_,i)=>({...bagItems[i%2],key:'stress-'+i,name:'海盐焦糖燕麦咖啡店长限定特调',specification:'冰 / 加大杯 / 标准甜 / 燕麦奶',quantity:20,unit_price:'188.00',unitCents:18800})) : bagItems;
         Object.assign(data,cart.totals(data.items));
       }
+      if(variant.includes('-stock')){
+        const product={...catalog.products[0],is_out_of_stock:true,reservation_only:variant.endsWith('-reservation')};
+        const items=[cart.lineFor(product,Object.fromEntries(Object.entries(product.options).map(([key,values])=>[key,values[0].label])),1)];
+        Object.assign(data,{product,items,visibleProducts:catalog.products.map((p,index)=>index?p:product),orderable:cart.canOrder(product),stockBlocked:!cart.canOrder(product),...cart.totals(items)});
+      }
       data.bagVisible=variant.startsWith('cart');
+      data.productCounts=data.items.reduce((counts,item)=>({...counts,[item.product_id]:(counts[item.product_id]||0)+item.quantity}),{});
       const page=await browser.newPage({viewport:{width:390,height:844},deviceScaleFactor:2});
       await page.goto(base+'/prototype/');
       const body=await page.evaluate(({source,data,cartSource,cartCss,base})=>{
@@ -74,6 +89,10 @@ async function readStyles(file){
             for(const attr of node.attributes){
               if(attr.name.startsWith('wx:')||/^(bind|catch)/.test(attr.name))continue;
               let value=interpolate(attr.value,scope);
+              if(attr.name==='disabled'){
+                if(value==='false')continue;
+                value='';
+              }
               if(attr.name==='style')value=value.replace(/(-?\d*\.?\d+)rpx/g,(_,n)=>`calc(${Number(n)} * 100vw / 750)`);
               if(attr.name==='src'&&value.startsWith('/assets/'))value=base+'/miniprogram'+value;
               element.setAttribute(attr.name,value);
@@ -87,10 +106,12 @@ async function readStyles(file){
       },{source,data,cartSource,cartCss,base});
       const css=browserCss(styles);
       const nav=['home','menu','orders','profile'].map((key,i)=>`<a href="${key==='orders'?'../admin/orders/':key+'.html'}" class="preview-tab ${key===name?'active':''}"><img src="../miniprogram/assets/${['home','cup','order','user'][i]}${key===name?'-active':''}.png">${['首页','点单','订单','我的'][i]}</a>`).join('');
+      const showTabs=['home','menu','orders','profile'].includes(name);
       const title={home:'SLOW ISLE · 慢屿',menu:'点一杯，慢慢来',profile:'我的慢屿',detail:'选一杯喜欢的',checkout:'确认订单',orders:'我的订单','order-detail':'订单详情'}[name];
-      const html=`<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title} · 布局预览</title><style>button[size=default]{width:184px;margin:0 auto;padding:8px 15px}body{margin:0}img{object-fit:cover}*{box-sizing:border-box}${css}\nbody{padding-top:80px;padding-bottom:65px}.preview-header{position:fixed;top:0;left:0;right:0;height:80px;background:#f8f5ef;z-index:20;padding:12px 20px;font-size:11px}.preview-header>div{display:flex;justify-content:space-between;margin-bottom:15px}.preview-header>p{font-size:12px;text-align:center;margin:0}.preview-nav{position:fixed;left:0;bottom:0;right:0;height:65px;display:flex;justify-content:space-around;background:#f8f5ef;border-top:1px solid #e6ded3;z-index:30;padding-bottom:10px}.preview-tab{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:10px;color:#82776c;text-decoration:none;width:60px}.preview-tab img{width:23px;height:23px}.preview-tab.active{color:#302720}.menu-page{height:calc(100vh - 145px)}.categories,.products{overflow-y:auto}.search input{border:0;background:none;outline:0;padding:0}.bag-bar{bottom:75px}</style></head><body><header class="preview-header"><div><span>9:41</span><span>▮▮▮　▰</span></div><p>${title}</p></header>${body}<nav class="preview-nav">${nav}</nav></body></html>`;
-      await fs.writeFile(path.join(root,'prototype',variant+'.html'),html);
-      await page.setContent(html.replaceAll('../miniprogram',base+'/miniprogram'),{waitUntil:'networkidle'});
+      const html=`<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title} · 布局预览</title><style>button[size=default]{width:184px;margin:0 auto;padding:8px 15px}body{margin:0}img{object-fit:cover}*{box-sizing:border-box}${css}\nbody{padding-top:80px;padding-bottom:${showTabs?65:0}px}.preview-header{position:fixed;top:0;left:0;right:0;height:80px;background:#f8f5ef;z-index:20;padding:12px 20px;font-size:11px}.preview-header>div{display:flex;justify-content:space-between;margin-bottom:15px}.preview-header>p{font-size:12px;text-align:center;margin:0}.preview-nav{position:fixed;left:0;bottom:0;right:0;height:65px;display:flex;justify-content:space-around;background:#f8f5ef;border-top:1px solid #e6ded3;z-index:30;padding-bottom:10px}.preview-tab{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:10px;color:#82776c;text-decoration:none;width:60px}.preview-tab img{width:23px;height:23px}.preview-tab.active{color:#302720}.menu-page{height:calc(100vh - 145px)}.categories,.products{overflow-y:auto}.search input{border:0;background:none;outline:0;padding:0}.bag-bar{bottom:75px}</style></head><body><header class="preview-header"><div><span>9:41</span><span>▮▮▮　▰</span></div><p>${title}</p></header>${body}${showTabs?`<nav class="preview-nav">${nav}</nav>`:''}</body></html>`;
+      const previewHtml=html.replace('</style>','picker{display:block}</style>').replace(/[\t ]+$/gm,'');
+      await fs.writeFile(path.join(root,'prototype',variant+'.html'),previewHtml);
+      await page.setContent(previewHtml.replaceAll('../miniprogram',base+'/miniprogram'),{waitUntil:'networkidle'});
       await page.evaluate(async()=>{await document.fonts.ready;await Promise.all([...document.images].map(image=>image.decode()))});
       assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,name+' horizontal overflow');
       if(name==='home'){
@@ -107,17 +128,57 @@ async function readStyles(file){
       for(const width of [320,375,390,430]){
         await page.setViewportSize({width,height:width===320 ? 667 : 844});
         assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false,name+' overflow at '+width);
+        if(name==='checkout'){
+          assert.equal(await page.locator('.pickup-mode.active').count(),1);
+          if(variant==='checkout-reservation')assert.ok(await page.locator('.pickup-choice').isVisible());
+          if(variant==='checkout-no-slots')assert.ok(await page.locator('.primary').isDisabled());
+          assert.equal(await page.locator('.compact-action .arrow').count(),0);
+          const action=await page.locator('.compact-action').evaluate(button=>{
+            const rect=button.getBoundingClientRect(),label=button.querySelector('.action-label').getBoundingClientRect();
+            return {centered:Math.abs((label.left+label.right-rect.left-rect.right)/2)<1&&Math.abs((label.top+label.bottom-rect.top-rect.bottom)/2)<1,compact:rect.height<=90*innerWidth/750};
+          });
+          assert.ok(action.centered&&action.compact,variant+' compact centered submit action at '+width);
+          if(variant==='checkout-stock')assert.ok(await page.locator('.compact-action').isDisabled());
+        }
+        if(variant==='detail-stock')assert.ok(await page.locator('.primary').isDisabled());
+        if(variant==='detail-stock-reservation')assert.equal(await page.locator('.primary').isDisabled(),false);
+        if(variant==='menu-stock')assert.equal(await page.locator('.product-quantity .stock-disabled').count(),1);
+        if(variant==='cart-stock')assert.equal(await page.locator('.checkout-action').getAttribute('aria-disabled'),'true');
         const prices=await page.locator('.money').evaluateAll(elements=>elements.map(el=>{const s=getComputedStyle(el);return {size:parseFloat(s.fontSize),font:s.fontFamily,variant:s.fontVariantNumeric}}));
         assert.ok(prices.every(p=>Math.abs(p.size-32*width/750)<.1&&p.font.startsWith('Arial')&&p.variant.includes('lining-nums')&&p.variant.includes('tabular-nums')),variant+' unified money typography at '+width);
+        const symbols=await page.locator('.quantity-symbol').evaluateAll(elements=>elements.every(el=>{
+          const rect=el.getBoundingClientRect(),style=getComputedStyle(el,'::before'),host=getComputedStyle(el),matrix=new DOMMatrix(style.transform);
+          const x=parseFloat(host.borderLeftWidth)+parseFloat(style.left)+parseFloat(style.width)/2+matrix.m41,y=parseFloat(host.borderTopWidth)+parseFloat(style.top)+parseFloat(style.height)/2+matrix.m42;
+          return style.content!=='none'&&Math.abs(x-rect.width/2)<1&&Math.abs(y-rect.height/2)<1;
+        }));
+        assert.ok(symbols,variant+' geometric symbol centering at '+width);
         if(name==='home')assert.ok(await page.locator('.plus').evaluateAll(items=>items.every(el=>Math.abs(el.getBoundingClientRect().width-el.getBoundingClientRect().height)<1)));
         if(name==='menu')assert.ok(await page.locator('.category').evaluateAll(items=>items.every(el=>el.scrollWidth<=el.clientWidth)));
         if(name==='menu'){
+          const quantities=await page.locator('.product-quantity').evaluateAll(groups=>groups.every(group=>{
+            const parts=[...group.children].map(el=>el.getBoundingClientRect()),center=(parts[0].top+parts[0].bottom)/2;
+            return parts.every(rect=>Math.abs((rect.top+rect.bottom)/2-center)<1)&&parts.every((rect,index)=>!index||rect.left-parts[index-1].right>=8*innerWidth/750);
+          }));
+          assert.ok(quantities,variant+' centered and spaced quantity controls at '+width);
+          if(variant==='menu-filled')assert.equal(await page.locator('.menu-count').count(),bagItems.length);
+          const scrollGutter=await page.locator('.products').evaluate(el=>{
+            const edge=el.getBoundingClientRect().right;
+            return [...el.querySelectorAll('.plus')].every(button=>edge-button.getBoundingClientRect().right>=30*innerWidth/750);
+          });
+          assert.ok(scrollGutter,variant+' add buttons must stay clear of the scroll indicator at '+width);
           const bar=await page.locator('.bag-bar').evaluate(el=>{
             const rect=selector=>el.querySelector(selector).getBoundingClientRect();
             const tip=el.querySelector('.bag-tip'),total=rect('.bag-total'),checkout=rect('.bag-checkout');
             return {singleLine:tip.scrollHeight<=parseFloat(getComputedStyle(tip).lineHeight)+1,totalFits:total.right<=checkout.left,tipFits:tip.scrollWidth<=tip.clientWidth};
           });
           assert.ok(bar.singleLine&&bar.totalFits&&bar.tipFits,variant+' checkout bar at '+width);
+        }
+        if(name==='order-detail'){
+          const action=await page.locator('.actions .compact-action').evaluate(button=>{
+            const rect=button.getBoundingClientRect(),label=button.querySelector('.action-label').getBoundingClientRect(),parent=button.parentElement.getBoundingClientRect();
+            return {compact:rect.width<=360*innerWidth/750+1,centered:Math.abs((label.left+label.right-rect.left-rect.right)/2)<1&&Math.abs((rect.left+rect.right-parent.left-parent.right)/2)<1,noArrow:!button.querySelector('.arrow')};
+          });
+          assert.ok(action.compact&&action.centered&&action.noArrow,variant+' centered reorder action at '+width+': '+JSON.stringify(action));
         }
         if(data.bagVisible){
           assert.equal(await page.locator('.cart-item').count(),data.items.length);
@@ -129,6 +190,11 @@ async function readStyles(file){
           if(variant==='cart-stress')assert.ok(layout.scrolls,'long bag must scroll');
           if(width===375)await page.screenshot({path:path.join(root,'prototype',variant+'-updated.png')});
         }
+      }
+      if(variant==='checkout-reservation'){
+        await page.setViewportSize({width:375,height:844});
+        await page.locator('.pickup-section').scrollIntoViewIfNeeded();
+        await page.screenshot({path:path.join(root,'prototype/reservation-picker.png')});
       }
       if(['home','menu','profile'].includes(variant))previews.push(`<a class="preview-card" href="${name}.html"><span>${title}</span><img src="${name}-updated.png" alt="${title}新版布局"></a>`);
       await page.close();

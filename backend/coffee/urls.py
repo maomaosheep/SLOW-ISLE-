@@ -5,6 +5,7 @@ urlpatterns = [
     path('health/', views.health),
     path('session/', views.session),
     path('catalog/', views.catalog),
+    path('pickup-slots/', views.pickup_slots),
     path('orders/', views.orders),
     path('orders/create/', views.create_order),
     path('orders/<uuid:order_id>/', views.order_detail),

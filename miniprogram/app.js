@@ -1,12 +1,13 @@
 const api = require('./utils/api')
 const cart = require('./utils/cart')
+const { withImages } = require('./utils/images')
 
 App({
   globalData: { catalog: null, cart: [], catalogRequest: null },
   onLaunch() {
     try {
       const saved = wx.getStorageSync('slow_isle_cart')
-      this.globalData.cart = Array.isArray(saved) ? saved.filter(item => item && Number.isInteger(item.product_id) && Number.isInteger(item.quantity) && item.quantity > 0 && item.quantity <= 20 && Number.isFinite(item.unitCents)) : []
+      this.globalData.cart = Array.isArray(saved) ? saved.filter(item => item && Number.isInteger(item.product_id) && Number.isInteger(item.quantity) && item.quantity > 0 && item.quantity <= 20 && Number.isFinite(item.unitCents)).map(withImages) : []
     } catch (_) { this.globalData.cart = [] }
     this.updateBadge()
   },

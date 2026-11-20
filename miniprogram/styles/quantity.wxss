@@ -1,0 +1,5 @@
+/* Draw centered symbols rather than depending on a font's glyph baseline. */
+.quantity-symbol{position:relative}
+.quantity-symbol::before,.quantity-symbol::after{content:"";position:absolute;left:50%;top:50%;width:20rpx;height:3rpx;border-radius:2rpx;background:currentColor;transform:translate(-50%,-50%);pointer-events:none}
+.quantity-symbol::after{transform:translate(-50%,-50%) rotate(90deg)}
+.quantity-minus::after{display:none}

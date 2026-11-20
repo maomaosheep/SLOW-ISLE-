@@ -84,6 +84,9 @@ class Product(models.Model):
     fallback_image = models.CharField('内置图片', max_length=30, default='latte.jpg', choices=[('latte.jpg', '拿铁'), ('americano.jpg', '美式'), ('croissant.jpg', '可颂')])
     options = models.JSONField('规格与加价', default=default_options, blank=True, validators=[validate_options], help_text='勾选需要的规格，填写选项名称与加价；关闭全部规格适用于小食。')
     is_available = models.BooleanField('上架', default=True)
+    is_out_of_stock = models.BooleanField('缺货', default=False, help_text='仅标记缺货时不接受任何订单；同时开启「仅接受预约」后，可按预约时间备货。')
+    reservation_only = models.BooleanField('仅接受预约', default=False, help_text='缺原料或需要提前制作时开启；商品继续展示，但顾客必须选择预约取餐。')
+    reservation_lead_minutes = models.PositiveSmallIntegerField('预约最少提前（分钟）', default=60, validators=[MinValueValidator(1), MaxValueValidator(1440)], help_text='仅接受预约时生效，例如 120 表示至少提前 2 小时；所有预约最晚为下单后 24 小时。')
     is_featured = models.BooleanField('首页推荐', default=False)
     sort_order = models.PositiveIntegerField('排序', default=0)
     updated_at = models.DateTimeField('更新时间', auto_now=True)
@@ -92,6 +95,10 @@ class Product(models.Model):
         ordering = ['sort_order', 'id']
         verbose_name = '咖啡与小食'
         verbose_name_plural = verbose_name
+
+    @property
+    def can_order(self):
+        return self.is_available and (not self.is_out_of_stock or self.reservation_only)
 
     def __str__(self):
         return self.name
@@ -130,6 +137,7 @@ class Order(models.Model):
     store_name = models.CharField('下单门店', max_length=80)
     store_address = models.CharField('取餐地址', max_length=200)
     pickup_minutes = models.PositiveSmallIntegerField('预计制作分钟', default=10)
+    scheduled_for = models.DateTimeField('预约取餐时间', null=True, blank=True, db_index=True)
     created_at = models.DateTimeField('下单时间', auto_now_add=True)
     updated_at = models.DateTimeField('更新时间', auto_now=True)
 

@@ -1,6 +1,7 @@
 from functools import wraps
 
 from django.contrib import admin, messages
+from django.conf import settings
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.paginator import Paginator
 from django.db import transaction
@@ -26,8 +27,10 @@ def permitted(model, action='view'):
 
 
 def context(request, section, **kwargs):
+    assets = settings.BASE_DIR / 'static' / 'coffee'
     return {
         'section': section, 'store': Store.objects.first(),
+        'asset_version': max((assets / name).stat().st_mtime_ns for name in ('workbench.js', 'workbench.css')),
         'pending_count': Order.objects.filter(status='pending').count(),
         'can_add_product': request.user.has_perm('coffee.add_product'),
         'can_change_product': request.user.has_perm('coffee.change_product'),
@@ -53,6 +56,8 @@ def product_context(request):
         products = products.filter(category_id=category_id)
     if availability in ('on', 'off'):
         products = products.filter(is_available=availability == 'on')
+    elif availability == 'stock':
+        products = products.filter(is_out_of_stock=True)
     return dict(
         products=Paginator(products, 24).get_page(request.GET.get('page')),
         categories=Category.objects.annotate(product_count=Count('products')),
@@ -101,6 +106,17 @@ def product_delete(request, product_id):
     return redirect('workbench-products')
 
 
+@permitted('product', 'change')
+@require_POST
+def product_stock(request, product_id):
+    with transaction.atomic():
+        product = get_object_or_404(Product.objects.select_for_update(), pk=product_id)
+        product.is_out_of_stock = not product.is_out_of_stock
+        product.save(update_fields=['is_out_of_stock', 'updated_at'])
+    messages.success(request, f'「{product.name}」已{"标记缺货" if product.is_out_of_stock else "恢复有货"}。')
+    return redirect('workbench-products')
+
+
 @permitted('category')
 def categories(request):
     return category_page(request)
@@ -145,6 +161,8 @@ def orders(request):
         queryset = queryset.filter(Q(pickup_code__icontains=query) | Q(customer_name__icontains=query))
     if status == 'active':
         queryset = queryset.filter(status__in=['pending', 'preparing', 'ready'])
+    elif status == 'reserved':
+        queryset = queryset.filter(scheduled_for__isnull=False, status__in=['pending', 'preparing', 'ready']).order_by('scheduled_for', 'created_at')
     elif status in Order.Status.values:
         queryset = queryset.filter(status=status)
     page = Paginator(queryset, 20).get_page(request.GET.get('page'))
@@ -210,6 +228,7 @@ urlpatterns = [
     path('products/new/', admin.site.admin_view(product_edit), name='workbench-product-new'),
     path('products/<int:product_id>/edit/', admin.site.admin_view(product_edit), name='workbench-product-edit'),
     path('products/<int:product_id>/toggle/', product_toggle, name='workbench-product-toggle'),
+    path('products/<int:product_id>/stock/', product_stock, name='workbench-product-stock'),
     path('products/<int:product_id>/delete/', product_delete, name='workbench-product-delete'),
     path('categories/', categories, name='workbench-categories'),
     path('categories/new/', admin.site.admin_view(category_edit), name='workbench-category-new'),

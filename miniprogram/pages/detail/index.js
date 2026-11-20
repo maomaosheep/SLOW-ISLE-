@@ -1,7 +1,7 @@
-const { cents, money } = require('../../utils/cart')
+const { cents, money, canOrder } = require('../../utils/cart')
 const labels = { temperature: '温度', size: '杯型', sweetness: '甜度' }
 Page({
-  data: { loading: true, error: '', product: null, groups: [], selected: {}, quantity: 1, price: '0.00', isOpen: true },
+  data: { loading: true, error: '', product: null, groups: [], selected: {}, quantity: 1, price: '0.00', isOpen: true, orderable: true },
   onLoad(options) { this.productId = Number(options.id); this.load() },
   async load() {
     this.setData({ loading: true, error: '' })
@@ -13,7 +13,7 @@ Page({
         selected[key] = product.options[key][0].label
         return { key, title: labels[key], choices: product.options[key].map(item => ({ ...item, extra_label: cents(item.extra) > 0 ? ' +¥' + money(cents(item.extra)) : '' })) }
       })
-      this.setData({ product, groups, selected, isOpen: data.store.is_open })
+      this.setData({ product, groups, selected, isOpen: data.store.is_open, orderable: canOrder(product) })
       this.calculate()
     } catch (error) { this.setData({ error: error.message }) }
     finally { this.setData({ loading: false }) }
@@ -30,7 +30,7 @@ Page({
   },
   changeQty(event) { this.setData({ quantity: Math.max(1, Math.min(20, this.data.quantity + Number(event.currentTarget.dataset.delta))) }) },
   add() {
-    if (!this.data.isOpen) return
+    if (!this.data.isOpen || !canOrder(this.data.product)) return
     try {
       getApp().addToCart(this.data.product, this.data.selected, this.data.quantity)
       wx.showToast({ title: '已加入购物袋', icon: 'success' })

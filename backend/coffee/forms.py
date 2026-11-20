@@ -1,6 +1,8 @@
 from decimal import Decimal, InvalidOperation
 
 from django import forms
+from django.conf import settings
+from django.templatetags.static import static
 
 from .models import Category, Product, Store, validate_options
 
@@ -29,14 +31,17 @@ class SpecificationWidget(forms.Widget):
         value = value if isinstance(value, dict) else {}
         context['groups'] = [
             {'key': key, 'title': title, 'enabled': key in value,
+             'placeholder': {'temperature': '例如：冰', 'size': '例如：大杯', 'sweetness': '例如：七分糖'}[key],
              'rows': value.get(key) or [{'label': '', 'extra': '0.00'}]}
             for key, title in self.groups
         ]
         return context
 
-    class Media:
-        css = {'all': ('coffee/specifications.css',)}
-        js = ('coffee/specifications.js',)
+    @property
+    def media(self):
+        assets = settings.BASE_DIR / 'static' / 'coffee'
+        version = max((assets / name).stat().st_mtime_ns for name in ('specifications.css', 'specifications.js'))
+        return forms.Media(css={'all': (f'{static("coffee/specifications.css")}?v={version}',)}, js=(f'{static("coffee/specifications.js")}?v={version}',))
 
 
 class SpecificationField(forms.Field):
@@ -56,11 +61,17 @@ class SpecificationField(forms.Field):
 
 class ProductForm(forms.ModelForm):
     options = SpecificationField(required=False, label='规格与加价', help_text='打开需要的规格，填写选项和加价即可；原价选项的加价填 0。')
+    reservation_lead_minutes = forms.IntegerField(required=False, initial=60, min_value=1, max_value=1440,
+        label='预约最少提前（分钟）', help_text='仅接受预约时生效，例如 120 表示提前 2 小时。顾客只能预约未来 24 小时内的营业时段。')
+
+    def clean_reservation_lead_minutes(self):
+        return self.cleaned_data.get('reservation_lead_minutes') or 60
 
     class Meta:
         model = Product
         fields = ['name', 'english_name', 'category', 'price', 'image', 'fallback_image',
-                  'flavor', 'description', 'options', 'is_available', 'is_featured', 'sort_order']
+                  'flavor', 'description', 'options', 'is_available', 'is_out_of_stock', 'reservation_only',
+                  'reservation_lead_minutes', 'is_featured', 'sort_order']
         widgets = {'description': forms.Textarea(attrs={'rows': 3}), 'price': forms.NumberInput(attrs={'step': '0.01', 'min': '0.01'})}
 
 

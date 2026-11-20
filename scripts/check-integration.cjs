@@ -27,9 +27,21 @@ function page(name){require('../miniprogram/pages/'+name+'/index');return lastPa
   const checkout=page('checkout');await checkout.load();checkout.nameInput({detail:{value:'联调测试'}});checkout.noteInput({detail:{value:'INTEGRATION_CHECK_ONLY'}});
   assert.equal(checkout.data.total,'64.00');await checkout.submit();assert.match(lastNavigation,/order-detail/);assert.equal(app.globalData.cart.length,0);
   const orderId=new URL('http://localhost'+lastNavigation).searchParams.get('id');
+  const cleanupFile=path.resolve(__dirname,'../output/test-artifacts/integration-cleanup.json');
+  const cleanup={orderIds:[orderId],token:storage.get('slow_isle_token')};
+  await fs.mkdir(path.dirname(cleanupFile),{recursive:true});
+  await fs.writeFile(cleanupFile,JSON.stringify(cleanup));
   const order=page('order-detail');order.orderId=orderId;order.active=false;await order.load();assert.equal(order.data.order.total,'64.00');assert.equal(order.data.order.status,'pending');
   const orders=page('orders');await orders.load(true);assert.equal(orders.data.orders.length,1);
   const api=require('../miniprogram/utils/api');await api.cancelOrder(orderId);await order.load();assert.equal(order.data.order.status,'cancelled');
+  const slots=await api.pickupSlots([detail.data.product.id]);assert.ok(slots.slots.length);
+  const reserved=await api.createOrder({request_id:require('../miniprogram/utils/cart').requestId(),expected_total:'64.00',
+    customer_name:'预约联调测试',note:'INTEGRATION_CHECK_ONLY',scheduled_for:slots.slots[0].value,
+    items:[{product_id:detail.data.product.id,quantity:2,options:detail.data.selected}]});
+  cleanup.orderIds.push(reserved.id);await fs.writeFile(cleanupFile,JSON.stringify(cleanup));
+  assert.equal(new Date(reserved.scheduled_for).getTime(),new Date(slots.slots[0].value).getTime());
+  assert.ok(reserved.pickup_label);order.orderId=reserved.id;await order.load();
+  assert.ok(order.data.statusText.includes('预约'));assert.ok(order.data.statusText.includes(reserved.pickup_label));
   const credential=await fs.readFile(path.resolve(__dirname,'../backend/.local-admin.txt'),'utf8');
   const username=credential.match(/账号：([^\r\n]+)/)[1],password=credential.match(/密码：([^\r\n]+)/)[1];
   const browser=await chromium.launch({executablePath:'C:/Program Files/Google/Chrome/Application/chrome.exe',headless:true});
@@ -46,10 +58,11 @@ function page(name){require('../miniprogram/pages/'+name+'/index');return lastPa
     await browserPage.screenshot({path:path.resolve(__dirname,'../prototype/backend-live.png'),fullPage:true});
     await browserPage.goto('http://127.0.0.1:8000/admin/orders/?status=all&q=联调测试');
     assert.ok((await browserPage.locator('.orders-layout').textContent()).includes('64.00'));
+    await browserPage.goto('http://127.0.0.1:8000/admin/orders/?status=reserved&order='+reserved.id);
+    assert.ok((await browserPage.locator('.reservation-banner').textContent()).includes(reserved.pickup_label));
+    await browserPage.screenshot({path:path.resolve(__dirname,'../prototype/reservation-workbench.png'),fullPage:true});
     await browserPage.goto('http://127.0.0.1:8000/prototype/');
     assert.equal(await browserPage.locator('.preview-card').count(),3);assert.deepEqual(errors,[]);
   }finally{await browser.close()}
-  await fs.mkdir(path.resolve(__dirname,'../output/test-artifacts'),{recursive:true});
-  await fs.writeFile(path.resolve(__dirname,'../output/test-artifacts/integration-cleanup.json'),JSON.stringify({orderId,token:storage.get('slow_isle_token')}));
-  console.log('Passed live integration: actual mini-program page controllers → Django API → order persistence → cancellation → authenticated admin and product images. Native WeChat rendering is a separate check.');
+  console.log('Passed live integration: actual mini-program controllers → Django API → immediate/reserved order persistence → reservation detail and staff queue → cancellation → authenticated admin and product images. Native WeChat rendering is a separate check.');
 })().catch(error=>{console.error(error);process.exitCode=1});

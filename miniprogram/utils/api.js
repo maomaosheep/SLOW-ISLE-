@@ -1,4 +1,5 @@
 const { API_BASE_URL } = require('../config')
+const { withImages } = require('./images')
 let connecting = null
 
 function request(path, options = {}) {
@@ -10,7 +11,7 @@ function request(path, options = {}) {
       timeout: 15000,
       header: { 'Content-Type': 'application/json', ...(options.token ? { Authorization: 'Bearer ' + options.token } : {}) },
       success(response) {
-        if (response.statusCode >= 200 && response.statusCode < 300) resolve(response.data)
+        if (response.statusCode >= 200 && response.statusCode < 300) resolve(withImages(response.data))
         else {
           const message = response.data && response.data.message
           const error = new Error(message || '门店服务暂时繁忙，请稍后重试。')
@@ -41,7 +42,8 @@ function authenticated(path, options = {}) {
 
 module.exports = {
   catalog: () => request('/catalog/'),
-  orders: (page = 1) => authenticated('/orders/?page=' + page),
+  pickupSlots: productIds => request('/pickup-slots/?product_ids=' + [...new Set(productIds)].join(',')),
+  orders: (page = 1, kind = 'all') => authenticated('/orders/?page=' + page + '&kind=' + encodeURIComponent(kind)),
   order: id => authenticated('/orders/' + encodeURIComponent(id) + '/'),
   createOrder: data => authenticated('/orders/create/', { method: 'POST', data }),
   cancelOrder: id => authenticated('/orders/' + encodeURIComponent(id) + '/cancel/', { method: 'POST' })
