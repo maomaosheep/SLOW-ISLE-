@@ -33,5 +33,5 @@
 .checkout-action text{margin-left:22rpx}
 .is-disabled{opacity:.4}
 .empty{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:28rpx}
-.empty image{width:64rpx;height:64rpx;margin-bottom:24rpx;opacity:.5}
+.empty-image{width:64rpx;height:64rpx;margin-bottom:24rpx;opacity:.5}
 .empty-note{margin-top:12rpx;font-size:23rpx;color:#82776c}

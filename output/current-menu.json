@@ -1,0 +1,274 @@
+{
+  "categories": [
+    {
+      "id": 1,
+      "name": "经典咖啡",
+      "count": 4
+    },
+    {
+      "id": 2,
+      "name": "风味特调",
+      "count": 1
+    },
+    {
+      "id": 3,
+      "name": "烘焙小食",
+      "count": 1
+    },
+    {
+      "id": 4,
+      "name": "茶饮",
+      "count": 1
+    },
+    {
+      "id": 6,
+      "name": "早餐轻食",
+      "count": 0
+    },
+    {
+      "id": 5,
+      "name": "冰饮气泡",
+      "count": 0
+    }
+  ],
+  "products": [
+    {
+      "id": 1,
+      "category": "风味特调",
+      "name": "海盐焦糖拿铁",
+      "price": "28.00",
+      "description": "海盐轻轻提味，焦糖缓缓融入。与醇厚浓缩相遇，是一口温柔的平衡。",
+      "flavor": "醇厚浓缩 / 海盐 / 焦糖",
+      "image": false,
+      "image_name": "",
+      "fallback": "latte.jpg",
+      "options": {
+        "temperature": [
+          {
+            "label": "热",
+            "extra": "0.00"
+          },
+          {
+            "label": "冰",
+            "extra": "0.00"
+          }
+        ],
+        "size": [
+          {
+            "label": "标准杯",
+            "extra": "0.00"
+          },
+          {
+            "label": "大杯",
+            "extra": "4.00"
+          }
+        ],
+        "sweetness": [
+          {
+            "label": "标准甜",
+            "extra": "0.00"
+          },
+          {
+            "label": "半甜",
+            "extra": "0.00"
+          },
+          {
+            "label": "不另加糖",
+            "extra": "0.00"
+          }
+        ]
+      }
+    },
+    {
+      "id": 5,
+      "category": "经典咖啡",
+      "name": "冰萃黑咖啡",
+      "price": "22.00",
+      "description": "",
+      "flavor": "低温慢萃，黑巧克力与坚果尾韵",
+      "image": true,
+      "image_name": "products/photo-1485808191679-5f86510681a2.avif",
+      "fallback": "latte.jpg",
+      "options": {
+        "temperature": [
+          {
+            "label": "冰",
+            "extra": "0.00"
+          }
+        ],
+        "size": [
+          {
+            "label": "大杯",
+            "extra": "4.00"
+          }
+        ],
+        "sweetness": [
+          {
+            "label": "标准甜",
+            "extra": "0.00"
+          },
+          {
+            "label": "不另外加糖",
+            "extra": "0.00"
+          }
+        ]
+      }
+    },
+    {
+      "id": 6,
+      "category": "经典咖啡",
+      "name": "卡布奇诺",
+      "price": "24.00",
+      "description": "",
+      "flavor": "浓缩、奶泡与可可香气平衡",
+      "image": true,
+      "image_name": "products/02-卡布奇诺-Cappuccino.jpg",
+      "fallback": "latte.jpg",
+      "options": {
+        "temperature": [
+          {
+            "label": "热",
+            "extra": "0.00"
+          }
+        ],
+        "size": [
+          {
+            "label": "标准杯",
+            "extra": "0.00"
+          },
+          {
+            "label": "大杯",
+            "extra": "4.00"
+          }
+        ],
+        "sweetness": [
+          {
+            "label": "标准甜",
+            "extra": "0.00"
+          },
+          {
+            "label": "不另外加糖",
+            "extra": "0.00"
+          }
+        ]
+      }
+    },
+    {
+      "id": 7,
+      "category": "茶饮",
+      "name": "多肉葡萄",
+      "price": "25.00",
+      "description": "精选大颗、饱满葡萄果肉，通过精品茶萃激发出果肉原生香味，清新而可口",
+      "flavor": "葡萄果肉、茉莉茶底与清爽香气",
+      "image": true,
+      "image_name": "products/16-多肉葡萄-Grape_Fruit_Tea_KBIqkbz.jpg",
+      "fallback": "latte.jpg",
+      "options": {
+        "temperature": [
+          {
+            "label": "冰",
+            "extra": "0.00"
+          }
+        ],
+        "size": [
+          {
+            "label": "标准杯",
+            "extra": "0.00"
+          },
+          {
+            "label": "大杯",
+            "extra": "4.00"
+          }
+        ],
+        "sweetness": [
+          {
+            "label": "标准甜",
+            "extra": "0.00"
+          },
+          {
+            "label": "不另外加糖",
+            "extra": "0.00"
+          }
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "category": "经典咖啡",
+      "name": "经典美式",
+      "price": "20.00",
+      "description": "双份浓缩与纯净水，轻盈、干净，留下坚果与可可的余韵。",
+      "flavor": "干净明亮 / 坚果余韵",
+      "image": false,
+      "image_name": "",
+      "fallback": "americano.jpg",
+      "options": {
+        "temperature": [
+          {
+            "label": "热",
+            "extra": "0.00"
+          },
+          {
+            "label": "冰",
+            "extra": "0.00"
+          }
+        ],
+        "size": [
+          {
+            "label": "标准杯",
+            "extra": "0.00"
+          },
+          {
+            "label": "大杯",
+            "extra": "4.00"
+          }
+        ]
+      }
+    },
+    {
+      "id": 3,
+      "category": "烘焙小食",
+      "name": "黄油可颂",
+      "price": "16.00",
+      "description": "轻轻一掰，酥层散开。黄油的香气，和咖啡刚好相配。",
+      "flavor": "层层酥香 / 每日烘焙",
+      "image": false,
+      "image_name": "",
+      "fallback": "croissant.jpg",
+      "options": {}
+    },
+    {
+      "id": 4,
+      "category": "经典咖啡",
+      "name": "燕麦拿铁",
+      "price": "26.00",
+      "description": "浓缩咖啡与燕麦奶的柔和相遇，谷物香气轻轻铺开。",
+      "flavor": "植物燕麦 / 顺滑轻盈",
+      "image": false,
+      "image_name": "",
+      "fallback": "latte.jpg",
+      "options": {
+        "temperature": [
+          {
+            "label": "热",
+            "extra": "0.00"
+          },
+          {
+            "label": "冰",
+            "extra": "0.00"
+          }
+        ],
+        "size": [
+          {
+            "label": "标准杯",
+            "extra": "0.00"
+          },
+          {
+            "label": "大杯",
+            "extra": "4.00"
+          }
+        ]
+      }
+    }
+  ]
+}
