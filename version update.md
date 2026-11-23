@@ -56,6 +56,14 @@
 - 截图中的 HTTP 警告来自局域网开发地址 `http://192.168.0.15:8000`；微信正式环境要求图片和 API 使用 HTTPS，部署 HTTPS 域名后只需修改 `miniprogram/config.js` 的 API 地址。
 - 修复购物袋组件中不被微信组件 WXSS 支持的 `image` 标签选择器，改为 `.empty-image` 类选择器。
 
+### 三、项目拉取与提交说明
+
+- README 新增从 GitHub 拉取后的 Windows 操作流程：克隆仓库、运行 `setup.ps1`、启动 Django、打开后台、导入微信开发者工具。
+- 补充管理员账号位置、`git pull` 更新方式、局域网真机联调步骤，以及正式环境必须使用 HTTPS 图片和 API 的说明。
+- 明确后台上传商品图片后由前端统一读取接口数据，不需要为每个商品单独编写前端代码。
+- 说明 GitHub 文件列表红框文字是最近一次修改该文件的 commit message；本次修改可使用 `git add -A`、`git commit -m "提交说明"`、`git push origin main` 统一提交。未被本次修改的文件会保留原有提交信息。
+- `.gitignore` 增加 `.firecrawl/`，避免联网检索缓存进入仓库。
+
 ## 验证结果
 
 - Django 测试：47 项全部通过。

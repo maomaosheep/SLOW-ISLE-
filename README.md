@@ -2,6 +2,22 @@
 
 单门店、自取、无在线支付。原生微信前端，Django 5.2 LTS + SQLite 后端。
 
+## 从 GitHub 拉取后开始
+
+适用于 Windows PowerShell。需要先安装 Git、Python 3.11+，并准备微信开发者工具。
+
+```powershell
+git clone https://github.com/maomaosheep/SLOW-ISLE-.git
+cd SLOW-ISLE-
+powershell -ExecutionPolicy Bypass -File .\scripts\setup.ps1
+powershell -ExecutionPolicy Bypass -File .\scripts\start.ps1
+```
+
+首次启动后打开 `http://127.0.0.1:8000/admin/`。管理员账号和随机密码会写入 `backend/.local-admin.txt`，该文件被 Git 忽略，不会从 GitHub 拉取；忘记密码可执行 `.venv\Scripts\python.exe backend/manage.py createsuperuser` 创建新账号。以后更新代码时，在项目根目录执行 `git pull`，再按需重启后台；不要把 `backend/.local-admin.txt`、`.venv/` 或 `backend/media/` 提交到 GitHub。
+
+小程序端在微信开发者工具中导入仓库里的 `miniprogram` 目录。开发者工具本机调试将 `miniprogram/config.js` 指向 `http://127.0.0.1:8000/api`；手机联调先运行 `powershell -ExecutionPolicy Bypass -File .\scripts\start.ps1 -Lan`，再把地址改成电脑局域网 IP，手机与电脑连接同一 Wi-Fi 后重新编译。正式发布需要把 API 和商品图片部署到 HTTPS 域名，只修改 `config.js` 的地址即可，后台新增商品图片不需要为每个商品编写前端代码。
+
+
 ## 本机运行
 
 需要 Python 3.11+。首次在根目录执行：

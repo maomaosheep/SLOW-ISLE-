@@ -8,6 +8,7 @@ __pycache__/
 node_modules/
 project.private.config.json
 output/test-artifacts/
+.firecrawl/
 
 backend/media/
 backend/staticfiles/
